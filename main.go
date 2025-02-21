@@ -1,122 +1,70 @@
 package main
 
 import (
-	"database/sql"  // Package for SQL database interactions
-	"fmt"           // Package for formatted I/O
-	"log"           // Package for logging
-	"net/http"      // Package for HTTP client and server
-	"text/template" // Package for HTML templates
+	"fmt"
+	"log"
+	"net/http"
 
-	_ "github.com/mattn/go-sqlite3" // SQLite driver
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 // Todo represents a task in the todo list
 type Todo struct {
-	ID    int
-	Title string
+	ID    uint   `gorm:"primaryKey"`
+	Title string `gorm:"not null"`
 }
 
-// DB is a global variable for the SQLite database connection
-var DB *sql.DB
+// DB is a global variable for the GORM database connection
+var DB *gorm.DB
 
-// initDB initializes the SQLite database and creates the todos table if it doesn't exist
+// initDB initializes the SQLite database and auto-migrates the todos table
 func initDB() {
 	var err error
-	DB, err = sql.Open("sqlite3", "./app.db") // Open a connection to the SQLite database file named app.db
+	DB, err = gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
-		log.Fatal(err) // Log an error and stop the program if the database can't be opened
+		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// SQL statement to create the todos table if it doesn't exist
-	sqlStmt := `CREATE TABLE IF NOT EXISTS todos (
-				  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-				  title TEXT
-				 );`
-
-	_, err = DB.Exec(sqlStmt)
-	if err != nil {
-		log.Fatalf("Error creating table: %q: %s\n", err, sqlStmt) // Log an error if table creation fails
-	}
+	// AutoMigrate will create the table if it doesn't exist
+	DB.AutoMigrate(&Todo{})
 }
 
-// indexHandler serves the main page and displays all todos
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	// Query the database to get all todos
-	rows, err := DB.Query("SELECT id, title FROM todos")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError) // Return an HTTP 500 error if the query fails
+// getTodos retrieves all todos and returns them as JSON
+func getTodos(c *gin.Context) {
+	var todos []Todo
+	DB.Find(&todos)
+	c.JSON(http.StatusOK, todos)
+}
+
+// createTodo handles creating a new todo
+func createTodo(c *gin.Context) {
+	var todo Todo
+	if err := c.ShouldBindJSON(&todo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close() // Ensure rows are closed after processing
-
-	todos := []Todo{} // Slice to store todos
-	for rows.Next() {
-		var todo Todo
-		if err := rows.Scan(&todo.ID, &todo.Title); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError) // Return an HTTP 500 error if scanning fails
-			return
-		}
-		todos = append(todos, todo)
-	}
-
-	// Parse and execute the HTML template with the todos data
-	tmpl := template.Must(template.New("index").Parse(`
- <!DOCTYPE html>
- <html>
- <head>
-  <title>Todo List</title>
- </head>
- <body>
-  <h1>Todo List</h1>
-  <form action="/create" method="POST">
-   <input type="text" name="title" placeholder="New Todo" required>
-   <button type="submit">Add</button>
-  </form>
-  <ul>
-   {{range .}}
-   <li>{{.Title}} <a href="/delete?id={{.ID}}">Delete</a></li>
-   {{end}}
-  </ul>
- </body>
- </html>
- `))
-
-	tmpl.Execute(w, todos) // Render the template with the list of todos
+	DB.Create(&todo)
+	c.JSON(http.StatusCreated, todo)
 }
 
-// createHandler handles the creation of a new todo
-func createHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		title := r.FormValue("title")                                  // Get the title from the form data
-		_, err := DB.Exec("INSERT INTO todos(title) VALUES(?)", title) // Insert the new todo into the database
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError) // Return an HTTP 500 error if insertion fails
-			return
-		}
-		http.Redirect(w, r, "/", http.StatusSeeOther) // Redirect to the main page after successful creation
-	}
-}
-
-// deleteHandler handles the deletion of a todo
-func deleteHandler(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")                           // Get the id from the URL query parameters
-	_, err := DB.Exec("DELETE FROM todos WHERE id = ?", id) // Delete the todo from the database
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError) // Return an HTTP 500 error if deletion fails
-		return
-	}
-	http.Redirect(w, r, "/", http.StatusSeeOther) // Redirect to the main page after successful deletion
+// deleteTodo handles deleting a todo by ID
+func deleteTodo(c *gin.Context) {
+	id := c.Param("id")
+	DB.Delete(&Todo{}, id)
+	c.JSON(http.StatusOK, gin.H{"message": "Todo deleted"})
 }
 
 func main() {
-	initDB()         // Initialize the database
-	defer DB.Close() // Ensure the database connection is closed when the program exits
+	initDB()
+	r := gin.Default()
 
-	// Route the handlers for each URL path
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/create", createHandler)
-	http.HandleFunc("/delete", deleteHandler)
+	// Routes
+	r.GET("/todos", getTodos)
+	r.POST("/todos", createTodo)
+	r.DELETE("/todos/:id", deleteTodo)
 
 	fmt.Println("Server is running at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil)) // Start the server on port 8080
+	r.Run(":8080")
 }
