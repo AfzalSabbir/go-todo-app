@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go-todo-app/db"
 	"go-todo-app/models"
-	"html/template"
 	"net/http"
 )
 
@@ -12,12 +11,62 @@ import (
 func IndexHandler(c *gin.Context) {
 	var todos []models.Todo
 	db.DB.Find(&todos)
-	tmpl, err := template.ParseFiles("views/index.html")
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Template error: %s", err)
+
+	// Load the layout and page templates
+	c.HTML(http.StatusOK, "/pages/list.html", gin.H{
+		"Title": "Todo List",
+		"Todos": todos,
+	})
+}
+
+// CreateHandler renders the HTML template with todo data
+func CreateHandler(c *gin.Context) {
+	// Load the layout and page templates
+	c.HTML(http.StatusOK, "/pages/add.html", gin.H{
+		"Title": "Create Todo",
+	})
+}
+
+// DetailsHandler renders the HTML template with todo data
+func DetailsHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	// Declare a variable to hold the todo
+	var todo models.Todo
+
+	// Fetch the todo record by its primary key; using First is more appropriate for a single record
+	if err := db.DB.First(&todo, id).Error; err != nil {
+		// If not found or an error occurs, return a 404
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	tmpl.Execute(c.Writer, todos)
+
+	// Load the layout and page templates with the fetched todo data
+	c.HTML(http.StatusOK, "/pages/details.html", gin.H{
+		"Title": "Todo Details",
+		"Todo":  todo,
+	})
+}
+
+// DetailsHandler renders the HTML template with todo data
+func EditHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	// Declare a variable to hold the todo
+	var todo models.Todo
+
+	// Fetch the todo record by its primary key; using First is more appropriate for a single record
+	if err := db.DB.First(&todo, id).Error; err != nil {
+		// If not found or an error occurs, return a 404
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	// Load the layout and page templates with the fetched todo data
+	c.HTML(http.StatusOK, "/pages/edit.html", gin.H{
+		"Title": "Todo Edit",
+		"Todo":  todo,
+	})
 }
 
 // CreateTodo handles creating a new todo
