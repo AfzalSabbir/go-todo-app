@@ -1,0 +1,4 @@
+# .air.toml
+
+# Exclude the node_modules directory inside the frontend folder
+exclude_dirs = ["frontend/node_modules", "/frontend/node_modules", "frontend", "node_modules"]
