@@ -13,11 +13,16 @@ var DB *gorm.DB
 // InitDB initializes the SQLite database and auto-migrates the todos table
 func InitDB() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
+	// Set up the database connection
+	DB, err = gorm.Open(sqlite.Open("/mnt/d/DB/SQLite/go-todo-app/app.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// AutoMigrate will create the table if it doesn't exist
-	DB.AutoMigrate(&models.Todo{})
+	// Perform migration and handle errors
+	if err := DB.AutoMigrate(&models.Todo{}); err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	} else {
+		log.Println("Database migrated successfully")
+	}
 }

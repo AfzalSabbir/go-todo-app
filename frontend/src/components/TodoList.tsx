@@ -1,42 +1,46 @@
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from "axios";
+import {NavLink} from "react-router-dom";
 
-import TodoItem, {Todo} from "./TodoItem.tsx";
+import { Todo } from "./TodoItem.tsx";
 
 const TodoList: React.FC = () => {
-    const [todos] = useState<Todo[]>([
-        {id: 1, task: 'Buy groceries', status: 'pending', date: '2025-02-01'},
-        {id: 2, task: 'Complete project', status: 'completed', date: '2025-02-05'},
-        {id: 3, task: 'Attend meeting', status: 'pending', date: '2025-02-10'},
-    ]);
-
+    const [todos, setTodos] = useState<Todo[]>([]);
     const [search, setSearch] = useState<string>('');
     const [pending, setPending] = useState<string>('');
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value);
+    useEffect(() => {
+        axios.get('http://localhost:8080/todos').then((r) => {
+            console.log('response', r.data.todos);
+            setTodos(r.data.todos);
+        });
+    }, []);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value);
+    const handlePendingChange = (e: React.ChangeEvent<HTMLSelectElement>) => setPending(e.target.value);
+    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value);
+    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value);
+
+    const handleEdit = (id: number) => {
+        console.log("Edit", id);
     };
 
-    const handlePendingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setPending(e.target.value);
+    const handleDelete = (id: number) => {
+        console.log("Delete", id);
     };
 
-    const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setStartDate(e.target.value);
-    };
-
-    const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEndDate(e.target.value);
+    const handleView = (id: number) => {
+        console.log("View", id);
     };
 
     const filteredTodos = todos.filter(todo => {
         const taskMatches = todo.task.toLowerCase().includes(search.toLowerCase());
         const statusMatches = !pending || todo.status === pending;
         const dateMatches =
-            (!startDate || new Date(todo.date) >= new Date(startDate)) &&
-            (!endDate || new Date(todo.date) <= new Date(endDate));
-
+            (!startDate || new Date(todo.created_at) >= new Date(startDate)) &&
+            (!endDate || new Date(todo.created_at) <= new Date(endDate));
         return taskMatches && statusMatches && dateMatches;
     });
 
@@ -44,61 +48,44 @@ const TodoList: React.FC = () => {
         <div className="container mx-auto p-6">
             {/* Filters Section */}
             <div className="flex space-x-4 mb-6">
-                {/* Search */}
-                <div className="flex items-center">
-                    <label htmlFor="search" className="mr-2">Search</label>
-                    <input
-                        type="text"
-                        id="search"
-                        className="border p-2 rounded"
-                        placeholder="Search tasks..."
-                        value={search}
-                        onChange={handleSearchChange}
-                    />
-                </div>
-
-                {/* Select Pending Tasks */}
-                <div className="flex items-center">
-                    <label htmlFor="pending" className="mr-2">Pending</label>
-                    <select
-                        id="pending"
-                        className="border p-2 rounded"
-                        value={pending}
-                        onChange={handlePendingChange}
-                    >
-                        <option value="">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-
-                {/* Date Range Filter */}
-                <div className="flex items-center">
-                    <label htmlFor="start-date" className="mr-2">Start Date</label>
-                    <input
-                        type="date"
-                        id="start-date"
-                        className="border p-2 rounded"
-                        value={startDate}
-                        onChange={handleStartDateChange}
-                    />
-                    <label htmlFor="end-date" className="ml-4 mr-2">End Date</label>
-                    <input
-                        type="date"
-                        id="end-date"
-                        className="border p-2 rounded"
-                        value={endDate}
-                        onChange={handleEndDateChange}
-                    />
-                </div>
+                <input type="text" className="border p-2 rounded" placeholder="Search tasks..." value={search} onChange={handleSearchChange} />
+                <select className="border p-2 rounded" value={pending} onChange={handlePendingChange}>
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+                <input type="date" className="border p-2 rounded" value={startDate} onChange={handleStartDateChange} />
+                <input type="date" className="border p-2 rounded" value={endDate} onChange={handleEndDateChange} />
+                <NavLink to="/todos/create" className="ml-auto bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Create
+                </NavLink>
             </div>
 
-            {/* Todo List Section */}
-            <div id="todo-list" className="space-y-4">
+            {/* Todo List Table */}
+            <table className="table-auto w-full border-collapse border border-gray-300">
+                <thead>
+                <tr className="bg-gray-200">
+                    <th className="border border-gray-300 p-2">Task</th>
+                    <th className="border border-gray-300 p-2">Status</th>
+                    <th className="border border-gray-300 p-2">Created At</th>
+                    <th className="border border-gray-300 p-2">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
                 {filteredTodos.map(todo => (
-                    <TodoItem key={todo.id} todo={todo}/>
+                    <tr key={todo.id} className="border border-gray-300">
+                        <td className="border border-gray-300 p-2">{todo.task}</td>
+                        <td className="border border-gray-300 p-2">{todo.status}</td>
+                        <td className="border border-gray-300 p-2">{new Date(todo.created_at).toLocaleDateString()}</td>
+                        <td className="border border-gray-300 p-2 flex space-x-2">
+                            <button onClick={() => handleEdit(todo.id)} className="bg-blue-500 text-white px-2 py-1 rounded">Edit</button>
+                            <button onClick={() => handleDelete(todo.id)} className="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+                            <button onClick={() => handleView(todo.id)} className="bg-green-500 text-white px-2 py-1 rounded">View</button>
+                        </td>
+                    </tr>
                 ))}
-            </div>
+                </tbody>
+            </table>
         </div>
     );
 };

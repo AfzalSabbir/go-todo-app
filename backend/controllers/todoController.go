@@ -12,6 +12,11 @@ func GetTodos(c *gin.Context) {
 	var todos []models.Todo
 	db.DB.Find(&todos)
 
+	// Return an empty array if no todos are found
+	if len(todos) == 0 {
+		todos = []models.Todo{}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"todos": todos,
 	})
@@ -24,6 +29,12 @@ func GetTodo(c *gin.Context) {
 
 	if err := db.DB.First(&todo, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+		return
+	}
+
+	// Check if the todo is null or empty
+	if (todo == models.Todo{}) {
+		c.JSON(http.StatusOK, gin.H{"todo": []models.Todo{}})
 		return
 	}
 

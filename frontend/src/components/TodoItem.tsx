@@ -2,7 +2,7 @@ export interface Todo {
     id: number;
     task: string;
     status: 'pending' | 'completed';
-    date: string;
+    created_at: string;
 }
 
 interface TodoItemProps {
@@ -12,7 +12,7 @@ interface TodoItemProps {
 const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
     return (
         <div className="border p-4 rounded">
-            {todo.task} - {todo.status} - {todo.date}
+            {todo.task} - {todo.status} - {todo.created_at}
         </div>
     );
 };
