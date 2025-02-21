@@ -1,1 +1,53 @@
-.idea
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.out
+
+# Go build artifacts
+*.o
+*.a
+*.lo
+*.la
+*.lai
+*.rej
+
+# Test binary
+*.test
+
+# Go module cache (if not using Go modules)
+vendor/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.iml
+
+# Git-specific files
+.DS_Store
+Thumbs.db
+
+# Go build cache
+/tmp/
+__debug_bin
+
+# Coverage reports
+*.cover
+*.cov
+coverage.out
+cover.out
+
+# Compiled protobuffers
+*.pb.go
+
+# Docker-related files (if applicable)
+docker-compose.override.yml

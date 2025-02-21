@@ -7,84 +7,68 @@ import (
 	"net/http"
 )
 
-// IndexHandler renders the HTML template with todo data
-func IndexHandler(c *gin.Context) {
+// GetTodos retrieves all todos
+func GetTodos(c *gin.Context) {
 	var todos []models.Todo
 	db.DB.Find(&todos)
 
-	// Load the layout and page templates
-	c.HTML(http.StatusOK, "/pages/list.html", gin.H{
-		"Title": "Todo List",
-		"Todos": todos,
+	c.JSON(http.StatusOK, gin.H{
+		"todos": todos,
 	})
 }
 
-// CreateHandler renders the HTML template with todo data
-func CreateHandler(c *gin.Context) {
-	// Load the layout and page templates
-	c.HTML(http.StatusOK, "/pages/add.html", gin.H{
-		"Title": "Create Todo",
-	})
-}
-
-// DetailsHandler renders the HTML template with todo data
-func DetailsHandler(c *gin.Context) {
+// GetTodo retrieves a single todo by ID
+func GetTodo(c *gin.Context) {
 	id := c.Param("id")
-
-	// Declare a variable to hold the todo
 	var todo models.Todo
 
-	// Fetch the todo record by its primary key; using First is more appropriate for a single record
 	if err := db.DB.First(&todo, id).Error; err != nil {
-		// If not found or an error occurs, return a 404
-		c.AbortWithStatus(http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		return
 	}
 
-	// Load the layout and page templates with the fetched todo data
-	c.HTML(http.StatusOK, "/pages/details.html", gin.H{
-		"Title": "Todo Details",
-		"Todo":  todo,
-	})
+	c.JSON(http.StatusOK, gin.H{"todo": todo})
 }
 
-// DetailsHandler renders the HTML template with todo data
-func EditHandler(c *gin.Context) {
-	id := c.Param("id")
-
-	// Declare a variable to hold the todo
-	var todo models.Todo
-
-	// Fetch the todo record by its primary key; using First is more appropriate for a single record
-	if err := db.DB.First(&todo, id).Error; err != nil {
-		// If not found or an error occurs, return a 404
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-
-	// Load the layout and page templates with the fetched todo data
-	c.HTML(http.StatusOK, "/pages/edit.html", gin.H{
-		"Title": "Todo Edit",
-		"Todo":  todo,
-	})
-}
-
-// CreateTodo handles creating a new todo
+// CreateTodo creates a new todo
 func CreateTodo(c *gin.Context) {
-	title := c.PostForm("title")
-	if title == "" {
-		c.String(http.StatusBadRequest, "Title cannot be empty")
+	var todo models.Todo
+	if err := c.ShouldBindJSON(&todo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	todo := models.Todo{Title: title}
 	db.DB.Create(&todo)
-	c.Redirect(http.StatusSeeOther, "/")
+	c.JSON(http.StatusCreated, gin.H{"todo": todo})
 }
 
-// DeleteTodo handles deleting a todo by ID
+// UpdateTodo updates an existing todo
+func UpdateTodo(c *gin.Context) {
+	id := c.Param("id")
+	var todo models.Todo
+
+	if err := db.DB.First(&todo, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&todo); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	db.DB.Save(&todo)
+	c.JSON(http.StatusOK, gin.H{"todo": todo})
+}
+
+// DeleteTodo deletes a todo by ID
 func DeleteTodo(c *gin.Context) {
 	id := c.Param("id")
-	db.DB.Delete(&models.Todo{}, id)
-	c.Redirect(http.StatusSeeOther, "/")
+
+	if err := db.DB.Delete(&models.Todo{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete todo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Todo deleted successfully"})
 }

@@ -5,18 +5,16 @@ import (
 	"go-todo-app/controllers"
 )
 
-// SetupRouter sets up the routes for the application
+// SetupRouter sets up the routes for the API
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	r.LoadHTMLGlob("views/**/*.html")
 
-	// Define the routes
-	r.GET("/", controllers.IndexHandler)
-	r.GET("/create", controllers.CreateHandler)
-	r.GET("/details/:id", controllers.DetailsHandler)
-	r.GET("/edit/:id", controllers.EditHandler)
-	r.POST("/create", controllers.CreateTodo)
-	r.GET("/delete/:id", controllers.DeleteTodo)
+	// Define API routes
+	r.GET("/todos", controllers.GetTodos)
+	r.GET("/todos/:id", controllers.GetTodo)
+	r.POST("/todos", controllers.CreateTodo)
+	r.PUT("/todos/:id", controllers.UpdateTodo)
+	r.DELETE("/todos/:id", controllers.DeleteTodo)
 
 	return r
 }
