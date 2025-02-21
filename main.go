@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 
@@ -31,39 +32,47 @@ func initDB() {
 	DB.AutoMigrate(&Todo{})
 }
 
-// getTodos retrieves all todos and returns them as JSON
-func getTodos(c *gin.Context) {
+// indexHandler renders the HTML template with todo data
+func indexHandler(c *gin.Context) {
 	var todos []Todo
 	DB.Find(&todos)
-	c.JSON(http.StatusOK, todos)
+	tmpl, err := template.ParseFiles("views/index.html")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Template error: %s", err)
+		return
+	}
+	tmpl.Execute(c.Writer, todos)
 }
 
 // createTodo handles creating a new todo
 func createTodo(c *gin.Context) {
-	var todo Todo
-	if err := c.ShouldBindJSON(&todo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	title := c.PostForm("title")
+	if title == "" {
+		c.String(http.StatusBadRequest, "Title cannot be empty")
 		return
 	}
+
+	todo := Todo{Title: title}
 	DB.Create(&todo)
-	c.JSON(http.StatusCreated, todo)
+	c.Redirect(http.StatusSeeOther, "/")
 }
 
 // deleteTodo handles deleting a todo by ID
 func deleteTodo(c *gin.Context) {
 	id := c.Param("id")
 	DB.Delete(&Todo{}, id)
-	c.JSON(http.StatusOK, gin.H{"message": "Todo deleted"})
+	c.Redirect(http.StatusSeeOther, "/")
 }
 
 func main() {
 	initDB()
 	r := gin.Default()
+	r.LoadHTMLGlob("views/*")
 
 	// Routes
-	r.GET("/todos", getTodos)
-	r.POST("/todos", createTodo)
-	r.DELETE("/todos/:id", deleteTodo)
+	r.GET("/", indexHandler)
+	r.POST("/create", createTodo)
+	r.GET("/delete/:id", deleteTodo)
 
 	fmt.Println("Server is running at http://localhost:8080")
 	r.Run(":8080")
