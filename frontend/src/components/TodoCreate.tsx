@@ -1,6 +1,9 @@
 import {useEffect, useState} from "react";
 import axios from "axios";
 import {useParams} from "react-router-dom";
+import {Button} from "./ui/button.tsx";
+import {Input} from "./ui/input.tsx";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "./ui/select.tsx";
 
 export default function TodoCreate() {
     const params = useParams();
@@ -45,29 +48,37 @@ export default function TodoCreate() {
             <h1 className="text-2xl font-bold mb-4">To-Do List</h1>
 
             <div className="flex gap-2">
-                <input
+                <Input
                     type="text"
-                    className="flex-1 border p-2 rounded"
+                    className="w-full"
                     placeholder="Add a task..."
                     value={task.task}
                     onChange={(e) => setTask({...task, task: e.target.value})}
                 />
 
-                <select
-                    className="border p-2 rounded"
+                <Select
                     value={task.status}
-                    onChange={(e) => setTask({...task, status: e.target.value})}
+                    onValueChange={(value) => {
+                        console.log('value', value);
+                        setTask({...task, status: value})
+                    }}
                 >
-                    <option value="pending">Pending</option>
-                    <option value="complete">Complete</option>
-                </select>
+                    <SelectTrigger className="border p-2 rounded">
+                        <SelectValue placeholder="Select status"/>
+                    </SelectTrigger>
+                    <SelectContent
+                        className="border p-2 rounded">
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="complete">Complete</SelectItem>
+                    </SelectContent>
+                </Select>
 
-                <button
+                <Button
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                     onClick={!params.id ? addTask : updateTask}
                 >
                     {!params.id ? 'Add' : 'Update'}
-                </button>
+                </Button>
             </div>
         </div>
     );

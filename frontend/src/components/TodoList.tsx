@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from "axios";
-import {NavLink} from "react-router-dom";
+import {NavLink, useNavigate} from "react-router-dom";
 
 import { Todo } from "./TodoItem.tsx";
+import {Button} from "./ui/button.tsx";
 
 const TodoList: React.FC = () => {
+    const navigate = useNavigate();
+
     const [todos, setTodos] = useState<Todo[]>([]);
     const [search, setSearch] = useState<string>('');
     const [pending, setPending] = useState<string>('');
@@ -25,14 +28,17 @@ const TodoList: React.FC = () => {
 
     const handleEdit = (id: number) => {
         console.log("Edit", id);
+        navigate(`/todos/edit/${id}`)
     };
 
     const handleDelete = (id: number) => {
         console.log("Delete", id);
+        navigate(`/todos/delete/${id}`)
     };
 
     const handleView = (id: number) => {
         console.log("View", id);
+        navigate(`/todos/show/${id}`)
     };
 
     const filteredTodos = todos.filter(todo => {
@@ -78,9 +84,9 @@ const TodoList: React.FC = () => {
                         <td className="border border-gray-300 p-2">{todo.status}</td>
                         <td className="border border-gray-300 p-2">{new Date(todo.created_at).toLocaleDateString()}</td>
                         <td className="border border-gray-300 p-2 flex space-x-2">
-                            <button onClick={() => handleEdit(todo.id)} className="bg-blue-500 text-white px-2 py-1 rounded">Edit</button>
-                            <button onClick={() => handleDelete(todo.id)} className="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
-                            <button onClick={() => handleView(todo.id)} className="bg-green-500 text-white px-2 py-1 rounded">View</button>
+                            <Button onClick={() => handleEdit(todo.id)} className="bg-blue-500 text-white px-3 py-1 rounded cursor-pointer">Edit</Button>
+                            <Button onClick={() => handleDelete(todo.id)} className="bg-red-500 text-white px-3 py-1 rounded cursor-pointer">Delete</Button>
+                            <Button onClick={() => handleView(todo.id)} className="bg-green-500 text-white px-3 py-1 rounded cursor-pointer">View</Button>
                         </td>
                     </tr>
                 ))}
